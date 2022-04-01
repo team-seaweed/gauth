@@ -17,6 +17,7 @@ package model
 import (
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/wangdyqxx/casbinplus/rbac"
 	"github.com/wangdyqxx/casbinplus/util"
@@ -117,7 +118,7 @@ func (model *Model) ClearPolicy() {
 	amap.Range(func(key1, value1 interface{}) bool {
 		ast := value1.(*Assertion)
 		ast.Policy = nil
-		ast.PolicyMap = map[string]int{}
+		ast.PolicyMap = new(sync.Map)
 		return true
 	})
 	gmap, ok := model.GetKey("g")
@@ -127,7 +128,7 @@ func (model *Model) ClearPolicy() {
 	gmap.Range(func(key1, value1 interface{}) bool {
 		ast := value1.(*Assertion)
 		ast.Policy = nil
-		ast.PolicyMap = map[string]int{}
+		ast.PolicyMap = new(sync.Map)
 		return true
 	})
 }
@@ -171,7 +172,7 @@ func (model *Model) HasPolicy(sec string, ptype string, rule []string) bool {
 	if !ok {
 		return ok
 	}
-	_, ok = ast.PolicyMap[strings.Join(rule, DefaultSep)]
+	_, ok = ast.PolicyMap.Load(strings.Join(rule, DefaultSep))
 	return ok
 }
 
@@ -196,7 +197,7 @@ func (model *Model) AddPolicy(sec string, ptype string, rule []string) {
 
 	assertion := ast
 	assertion.Policy = append(assertion.Policy, rule)
-	assertion.PolicyMap[strings.Join(rule, DefaultSep)] = len(ast.Policy) - 1
+	assertion.PolicyMap.Store(strings.Join(rule, DefaultSep), len(ast.Policy)-1)
 
 	if sec == "p" && assertion.priorityIndex >= 0 {
 		if idxInsert, err := strconv.Atoi(rule[assertion.priorityIndex]); err == nil {
@@ -208,13 +209,17 @@ func (model *Model) AddPolicy(sec string, ptype string, rule []string) {
 				}
 				if idx > idxInsert {
 					assertion.Policy[i] = assertion.Policy[i-1]
-					assertion.PolicyMap[strings.Join(assertion.Policy[i-1], DefaultSep)]++
+					pvalue, ok := assertion.PolicyMap.Load(strings.Join(assertion.Policy[i-1], DefaultSep))
+					if !ok {
+						assertion.PolicyMap.Store(strings.Join(assertion.Policy[i-1], DefaultSep), 1)
+					}
+					assertion.PolicyMap.Store(strings.Join(assertion.Policy[i-1], DefaultSep), pvalue.(int)+1)
 				} else {
 					break
 				}
 			}
 			assertion.Policy[i] = rule
-			assertion.PolicyMap[strings.Join(rule, DefaultSep)] = i
+			assertion.PolicyMap.Store(strings.Join(rule, DefaultSep), i)
 		}
 	}
 }
@@ -233,7 +238,7 @@ func (model *Model) AddPoliciesWithAffected(sec string, ptype string, rules [][]
 	}
 	for _, rule := range rules {
 		hashKey := strings.Join(rule, DefaultSep)
-		_, ok = ast.PolicyMap[hashKey]
+		_, ok = ast.PolicyMap.Load(hashKey)
 		if ok {
 			continue
 		}
@@ -250,15 +255,15 @@ func (model *Model) RemovePolicy(sec string, ptype string, rule []string) bool {
 	if !ok {
 		return ok
 	}
-	index, ok := ast.PolicyMap[strings.Join(rule, DefaultSep)]
+	ivalue, ok := ast.PolicyMap.Load(strings.Join(rule, DefaultSep))
 	if !ok {
 		return false
 	}
-
+	index := ivalue.(int)
 	ast.Policy = append(ast.Policy[:index], ast.Policy[index+1:]...)
-	delete(ast.PolicyMap, strings.Join(rule, DefaultSep))
+	ast.PolicyMap.Delete(strings.Join(rule, DefaultSep))
 	for i := index; i < len(ast.Policy); i++ {
-		ast.PolicyMap[strings.Join(ast.Policy[i], DefaultSep)] = i
+		ast.PolicyMap.Store(strings.Join(ast.Policy[i], DefaultSep), i)
 	}
 
 	return true
@@ -271,15 +276,14 @@ func (model *Model) UpdatePolicy(sec string, ptype string, oldRule []string, new
 	if !ok {
 		return ok
 	}
-	index, ok := ast.PolicyMap[oldPolicy]
+	ivalue, ok := ast.PolicyMap.Load(oldPolicy)
 	if !ok {
 		return false
 	}
-
+	index := ivalue.(int)
 	ast.Policy[index] = newRule
-	delete(ast.PolicyMap, oldPolicy)
-	ast.PolicyMap[strings.Join(newRule, DefaultSep)] = index
-
+	ast.PolicyMap.Delete(oldPolicy)
+	ast.PolicyMap.Store(strings.Join(newRule, DefaultSep), index)
 	return true
 }
 
@@ -299,8 +303,8 @@ func (model *Model) UpdatePolicies(sec string, ptype string, oldRules, newRules 
 				ast.Policy[index] = oldRules[oldNewIndex[0]]
 				oldPolicy := strings.Join(oldRules[oldNewIndex[0]], DefaultSep)
 				newPolicy := strings.Join(newRules[oldNewIndex[1]], DefaultSep)
-				delete(ast.PolicyMap, newPolicy)
-				ast.PolicyMap[oldPolicy] = index
+				ast.PolicyMap.Delete(newPolicy)
+				ast.PolicyMap.Store(oldPolicy, index)
 			}
 		}
 	}()
@@ -308,15 +312,15 @@ func (model *Model) UpdatePolicies(sec string, ptype string, oldRules, newRules 
 	newIndex := 0
 	for oldIndex, oldRule := range oldRules {
 		oldPolicy := strings.Join(oldRule, DefaultSep)
-		index, ok := ast.PolicyMap[oldPolicy]
+		ivalue, ok := ast.PolicyMap.Load(oldPolicy)
 		if !ok {
 			rollbackFlag = true
 			return false
 		}
-
+		index := ivalue.(int)
 		ast.Policy[index] = newRules[newIndex]
-		delete(ast.PolicyMap, oldPolicy)
-		ast.PolicyMap[strings.Join(newRules[newIndex], DefaultSep)] = index
+		ast.PolicyMap.Delete(oldPolicy)
+		ast.PolicyMap.Store(strings.Join(newRules[newIndex], DefaultSep), index)
 		modifiedRuleIndex[index] = []int{oldIndex, newIndex}
 		newIndex++
 	}
@@ -338,16 +342,16 @@ func (model *Model) RemovePoliciesWithEffected(sec string, ptype string, rules [
 		return effected
 	}
 	for _, rule := range rules {
-		index, ok := ast.PolicyMap[strings.Join(rule, DefaultSep)]
+		iValue, ok := ast.PolicyMap.Load(strings.Join(rule, DefaultSep))
 		if !ok {
 			continue
 		}
-
+		index := iValue.(int)
 		effected = append(effected, rule)
 		ast.Policy = append(ast.Policy[:index], ast.Policy[index+1:]...)
-		delete(ast.PolicyMap, strings.Join(rule, DefaultSep))
+		ast.PolicyMap.Delete(strings.Join(rule, DefaultSep))
 		for i := index; i < len(ast.Policy); i++ {
-			ast.PolicyMap[strings.Join(ast.Policy[i], DefaultSep)] = i
+			ast.PolicyMap.Store(strings.Join(ast.Policy[i], DefaultSep), i)
 		}
 	}
 	return effected
@@ -362,7 +366,7 @@ func (model *Model) RemoveFilteredPolicy(sec string, ptype string, fieldIndex in
 	if !ok {
 		return ok, effects
 	}
-	ast.PolicyMap = map[string]int{}
+	ast.PolicyMap = new(sync.Map)
 
 	for _, rule := range ast.Policy {
 		matched := true
@@ -377,7 +381,7 @@ func (model *Model) RemoveFilteredPolicy(sec string, ptype string, fieldIndex in
 			effects = append(effects, rule)
 		} else {
 			tmp = append(tmp, rule)
-			ast.PolicyMap[strings.Join(rule, DefaultSep)] = len(tmp) - 1
+			ast.PolicyMap.Store(strings.Join(rule, DefaultSep), len(tmp)-1)
 		}
 	}
 

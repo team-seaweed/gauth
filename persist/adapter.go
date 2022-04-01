@@ -51,7 +51,7 @@ func LoadPolicyArray(rule []string, m *model.Model) {
 		return
 	}
 	ast.Policy = append(ast.Policy, rule[1:])
-	ast.PolicyMap[strings.Join(rule[1:], model.DefaultSep)] = len(ast.Policy) - 1
+	ast.PolicyMap.Store(strings.Join(rule[1:], model.DefaultSep), len(ast.Policy)-1)
 }
 
 // Adapter is the interface for Casbin adapters.

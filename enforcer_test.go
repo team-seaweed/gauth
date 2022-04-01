@@ -223,17 +223,7 @@ func TestMatcherUsingInOperatorBracket(t *testing.T) {
 	}
 
 	_, _ = e.AddPermissionForUser("alice", "data1", "read")
-	_, _ = e.AddPermissionForUser("alice111", "data1", "read")
-
-	//testEnforce(t, e, "alice", "data1", "read", true)
-
-	//{map[r_act:2 r_obj:1 r_sub:0] [alice data2 read] map[p_act:2 p_obj:1 p_sub:0] [alice data1 read]}
-	//g(r_sub, p_sub) && r_obj == p_obj && r_act == p_act || r_obj in ('data2', 'data3')
-
-	//parameters: {map[r_act:2 r_obj:1 r_sub:0] [alice data2 read] map[p_act:2 p_obj:1 p_sub:0] [alice data1 read]}
-	//expression: g(r_sub, p_sub) && r_obj == p_obj && r_act == p_act || r_obj in ['data2', 'data3']
 	testEnforce(t, e, "alice", "data2", "read", true)
-	return
 	testEnforce(t, e, "alice", "data3", "read", true)
 	testEnforce(t, e, "anyone", "data1", "read", false)
 	testEnforce(t, e, "anyone", "data2", "read", true)

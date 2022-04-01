@@ -405,13 +405,6 @@ func (e *Enforcer) initRmMap() {
 		}
 		return true
 	})
-	//for ptype := range amap {
-	//	if rm, ok := e.rmMap[ptype]; ok {
-	//		_ = rm.Clear()
-	//	} else {
-	//		e.rmMap[ptype] = defaultrolemanager.NewRoleManager(10)
-	//	}
-	//}
 }
 
 // EnableEnforce changes the enforcing state of Casbin, when Casbin is disabled, all access will be allowed by the Enforce() function.

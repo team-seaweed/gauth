@@ -68,7 +68,7 @@ func (model *Model) AddDef(sec string, key string, value string) bool {
 	ast := new(Assertion)
 	ast.Key = key
 	ast.Value = value
-	ast.PolicyMap = make(map[string]int)
+	ast.PolicyMap = new(sync.Map)
 	ast.setLogger(model.GetLogger())
 	ast.initPriorityIndex()
 
@@ -278,7 +278,7 @@ func (model *Model) SortPoliciesBySubjectHierarchy() (err error) {
 			return p1 > p2
 		})
 		for i, policy := range assertion.Policy {
-			assertion.PolicyMap[strings.Join(policy, ",")] = i
+			assertion.PolicyMap.Store(strings.Join(policy, ","), i)
 		}
 
 		return true
@@ -373,7 +373,7 @@ func (model *Model) SortPoliciesByPriority() error {
 			return p1 < p2
 		})
 		for i, policy := range assertion.Policy {
-			assertion.PolicyMap[strings.Join(policy, ",")] = i
+			assertion.PolicyMap.Store(strings.Join(policy, ","), i)
 		}
 		return true
 	})
