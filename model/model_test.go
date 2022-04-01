@@ -126,7 +126,7 @@ func TestModel_AddDef(t *testing.T) {
 
 func TestModelToTest(t *testing.T) {
 	testModelToText(t, "r.sub == p.sub && r.obj == p.obj && r_func(r.act, p.act) && testr_func(r.act, p.act)", "r_sub == p_sub && r_obj == p_obj && r_func(r_act, p_act) && testr_func(r_act, p_act)")
-	//testModelToText(t, "r.sub == p.sub && r.obj == p.obj && p_func(r.act, p.act) && testp_func(r.act, p.act)", "r_sub == p_sub && r_obj == p_obj && p_func(r_act, p_act) && testp_func(r_act, p_act)")
+	testModelToText(t, "r.sub == p.sub && r.obj == p.obj && p_func(r.act, p.act) && testp_func(r.act, p.act)", "r_sub == p_sub && r_obj == p_obj && p_func(r_act, p_act) && testp_func(r_act, p_act)")
 }
 
 func testModelToText(t *testing.T, mData, mExpected string) {
@@ -153,13 +153,13 @@ func testModelToText(t *testing.T, mData, mExpected string) {
 	t.Log(m.ToText())
 	_ = newM.LoadModelFromText(m.ToText())
 	for ptype := range data {
-		amap, ok := newM.GetKey(ptype)
+		ast, ok := newM.GetAstBySecPType(ptype, ptype)
 		if !ok {
 			t.Error(ptype, " not found")
 			return
 		}
-		if amap[ptype].Value != expected[ptype] {
-			t.Errorf("\"%s\" assertion value changed, current value: %s, it should be: %s", ptype, amap[ptype].Value, expected[ptype])
+		if ast.Value != expected[ptype] {
+			t.Errorf("\"%s\" assertion value changed, current value: %s, it should be: %s", ptype, ast.Value, expected[ptype])
 		}
 	}
 }

@@ -36,7 +36,10 @@ type Model struct {
 }
 
 // AssertionMap is the collection of assertions, can be "r", "p", "g", "e", "m".
-type AssertionMap map[string]*Assertion
+//type AssertionMap map[string]*Assertion
+type AssertionMap struct {
+	sync.Map
+}
 
 const defaultDomain string = ""
 const defaultSeparator = "::"
@@ -62,7 +65,7 @@ func (model *Model) AddDef(sec string, key string, value string) bool {
 	if value == "" {
 		return false
 	}
-	ast := Assertion{}
+	ast := new(Assertion)
 	ast.Key = key
 	ast.Value = value
 	ast.PolicyMap = make(map[string]int)
@@ -81,12 +84,12 @@ func (model *Model) AddDef(sec string, key string, value string) bool {
 		ast.Value = strings.Replace(strings.Replace(ast.Value, "[", "(", -1), "]", ")", -1)
 	}
 
-	amap, ok := model.Load(sec)
+	amap, ok := model.GetKey(sec)
 	if !ok {
-		amap = make(AssertionMap)
+		amap = new(AssertionMap)
 		model.Store(sec, amap)
 	}
-	amap.(AssertionMap)[key] = &ast
+	amap.Store(key, ast)
 	return true
 
 }
@@ -112,13 +115,16 @@ func loadSection(model *Model, cfg config.ConfigInterface, sec string) {
 
 // SetLogger sets the model's logger.
 func (model *Model) SetLogger(logger log.Logger) {
-	model.Range(func(key, value interface{}) bool {
-		for _, ast := range value.(AssertionMap) {
-			ast.logger = logger
-		}
+	model.Range(func(key1, value1 interface{}) bool {
+		value1.(*AssertionMap).Range(func(key2, value2 interface{}) bool {
+			value2.(*Assertion).logger = logger
+			return true
+		})
 		return true
 	})
-	model.Store("logger", AssertionMap{"logger": &Assertion{logger: logger}})
+	amap := new(AssertionMap)
+	amap.Store("logger", &Assertion{logger: logger})
+	model.Store("logger", amap)
 }
 
 // GetLogger returns the model's logger.
@@ -127,7 +133,11 @@ func (model *Model) GetLogger() log.Logger {
 	if !ok {
 		return nil
 	}
-	return amap["logger"].logger
+	ast, ok := amap.GetKey("logger")
+	if !ok {
+		return nil
+	}
+	return ast.logger
 }
 
 // NewModel creates an empty model.
@@ -213,20 +223,21 @@ func (model *Model) PrintModel() {
 		if k == "logger" {
 			return true
 		}
-		for i, j := range v.(AssertionMap) {
-			modelInfo = append(modelInfo, []string{k.(string), i, j.Value})
-		}
+		v.(*AssertionMap).Range(func(key, value interface{}) bool {
+			modelInfo = append(modelInfo, []string{k.(string), key.(string), value.(*Assertion).Value})
+			return true
+		})
 		return true
 	})
 	model.GetLogger().LogModel(modelInfo)
 }
 
-func (model *Model) SortPoliciesBySubjectHierarchy() error {
-	emap, ok := model.GetKey("e")
+func (model *Model) SortPoliciesBySubjectHierarchy() (err error) {
+	east, ok := model.GetAstBySecPType("e", "e")
 	if !ok {
 		return errors.New("e sec not found")
 	}
-	if emap["e"].Value != "subjectPriority(p_eft) || deny" {
+	if east.Value != "subjectPriority(p_eft) || deny" {
 		return nil
 	}
 	subIndex := 0
@@ -235,12 +246,14 @@ func (model *Model) SortPoliciesBySubjectHierarchy() error {
 	if !ok {
 		return errors.New("p sec not found")
 	}
-	gmap, ok := model.GetKey("g")
+	gast, ok := model.GetAstBySecPType("g", "g")
 	if !ok {
 		return errors.New("g sec not found")
 	}
 
-	for ptype, assertion := range pmap {
+	pmap.Range(func(key, value interface{}) bool {
+		ptype := key.(string)
+		assertion := value.(*Assertion)
 		for index, token := range assertion.Tokens {
 			if token == fmt.Sprintf("%s_dom", ptype) {
 				domainIndex = index
@@ -248,9 +261,10 @@ func (model *Model) SortPoliciesBySubjectHierarchy() error {
 			}
 		}
 		policies := assertion.Policy
-		subjectHierarchyMap, err := getSubjectHierarchyMap(gmap["g"].Policy)
+		var subjectHierarchyMap map[string]int
+		subjectHierarchyMap, err = getSubjectHierarchyMap(gast.Policy)
 		if err != nil {
-			return err
+			return false
 		}
 		sort.SliceStable(policies, func(i, j int) bool {
 			domain1, domain2 := defaultDomain, defaultDomain
@@ -266,7 +280,9 @@ func (model *Model) SortPoliciesBySubjectHierarchy() error {
 		for i, policy := range assertion.Policy {
 			assertion.PolicyMap[strings.Join(policy, ",")] = i
 		}
-	}
+
+		return true
+	})
 	return nil
 }
 
@@ -330,7 +346,10 @@ func (model *Model) SortPoliciesByPriority() error {
 	if !ok {
 		return errors.New("p sec not found")
 	}
-	for ptype, assertion := range pmap {
+	var err error
+	pmap.Range(func(key, value interface{}) bool {
+		ptype := key.(string)
+		assertion := value.(*Assertion)
 		for index, token := range assertion.Tokens {
 			if token == fmt.Sprintf("%s_priority", ptype) {
 				assertion.priorityIndex = index
@@ -338,15 +357,16 @@ func (model *Model) SortPoliciesByPriority() error {
 			}
 		}
 		if assertion.priorityIndex == -1 {
-			continue
+			return true
 		}
 		policies := assertion.Policy
 		sort.SliceStable(policies, func(i, j int) bool {
-			p1, err := strconv.Atoi(policies[i][assertion.priorityIndex])
+			var p1, p2 int
+			p1, err = strconv.Atoi(policies[i][assertion.priorityIndex])
 			if err != nil {
 				return true
 			}
-			p2, err := strconv.Atoi(policies[j][assertion.priorityIndex])
+			p2, err = strconv.Atoi(policies[j][assertion.priorityIndex])
 			if err != nil {
 				return true
 			}
@@ -355,7 +375,8 @@ func (model *Model) SortPoliciesByPriority() error {
 		for i, policy := range assertion.Policy {
 			assertion.PolicyMap[strings.Join(policy, ",")] = i
 		}
-	}
+		return true
+	})
 	return nil
 }
 
@@ -364,19 +385,19 @@ func (model *Model) ToText() string {
 
 	pPattern, rPattern := regexp.MustCompile("^p_"), regexp.MustCompile("^r_")
 	for _, ptype := range []string{"r", "p"} {
-		amap, ok := model.GetKey(ptype)
+		ast, ok := model.GetAstBySecPType(ptype, ptype)
 		if !ok {
 			return ""
 		}
-		for _, token := range amap[ptype].Tokens {
+		for _, token := range ast.Tokens {
 			tokenPatterns[token] = rPattern.ReplaceAllString(pPattern.ReplaceAllString(token, "p."), "r.")
 		}
 	}
-	emap, ok := model.GetKey("e")
+	east, ok := model.GetAstBySecPType("e", "e")
 	if !ok {
 		return ""
 	}
-	if strings.Contains(emap["e"].Value, "p_eft") {
+	if strings.Contains(east.Value, "p_eft") {
 		tokenPatterns["p_eft"] = "p.eft"
 	}
 	s := strings.Builder{}
@@ -385,13 +406,15 @@ func (model *Model) ToText() string {
 		if !ok {
 			return
 		}
-		for ptype := range amap {
-			value := amap[ptype].Value
+		amap.Range(func(key1, value1 interface{}) bool {
+			ast := value1.(*Assertion)
+			value := ast.Value
 			for tokenPattern, newToken := range tokenPatterns {
 				value = strings.Replace(value, tokenPattern, newToken, -1)
 			}
 			s.WriteString(fmt.Sprintf("%s = %s\n", sec, value))
-		}
+			return true
+		})
 	}
 	s.WriteString("[request_definition]\n")
 	writeString("r")
@@ -401,9 +424,10 @@ func (model *Model) ToText() string {
 	amap, ok := model.GetKey("g")
 	if ok {
 		s.WriteString("[role_definition]\n")
-		for ptype := range amap {
-			s.WriteString(fmt.Sprintf("%s = %s\n", ptype, amap[ptype].Value))
-		}
+		amap.Range(func(key, value interface{}) bool {
+			s.WriteString(fmt.Sprintf("%s = %s\n", key, value.(*Assertion).Value))
+			return true
+		})
 	}
 	s.WriteString("[policy_effect]\n")
 	writeString("e")
@@ -415,10 +439,11 @@ func (model *Model) ToText() string {
 func (model *Model) Copy() *Model {
 	newModel := NewModel()
 	model.Range(func(key, value interface{}) bool {
-		newAstMap := make(AssertionMap)
-		for ptype, ast := range value.(AssertionMap) {
-			newAstMap[ptype] = ast.copy()
-		}
+		newAstMap := new(AssertionMap)
+		value.(*AssertionMap).Range(func(key, value interface{}) bool {
+			newAstMap.Store(key.(string), value.(*Assertion).copy())
+			return true
+		})
 		newModel.Store(key, newAstMap)
 		return true
 	})
@@ -426,10 +451,26 @@ func (model *Model) Copy() *Model {
 	return newModel
 }
 
-func (model *Model) GetKey(sec string) (AssertionMap, bool) {
+func (model *Model) GetKey(sec string) (*AssertionMap, bool) {
 	v, ok := model.Load(sec)
 	if !ok {
 		return nil, false
 	}
-	return v.(AssertionMap), ok
+	return v.(*AssertionMap), ok
+}
+
+func (model *Model) GetAstBySecPType(sec, ptype string) (*Assertion, bool) {
+	v, ok1 := model.GetKey(sec)
+	if !ok1 {
+		return nil, false
+	}
+	return v.GetKey(ptype)
+}
+
+func (as *AssertionMap) GetKey(ptype string) (*Assertion, bool) {
+	v, ok := as.Load(ptype)
+	if !ok {
+		return nil, false
+	}
+	return v.(*Assertion), ok
 }

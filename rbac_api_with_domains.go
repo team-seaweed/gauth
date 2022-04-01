@@ -16,21 +16,21 @@ package casbinplus
 
 // GetUsersForRoleInDomain gets the users that has a role inside a domain. Add by Gordon
 func (e *Enforcer) GetUsersForRoleInDomain(name string, domain string) []string {
-	amap, ok := e.model.GetKey("g")
+	ast, ok := e.model.GetAstBySecPType("g", "g")
 	if !ok {
 		return []string{}
 	}
-	res, _ := amap["g"].RM.GetUsers(name, domain)
+	res, _ := ast.RM.GetUsers(name, domain)
 	return res
 }
 
 // GetRolesForUserInDomain gets the roles that a user has inside a domain.
 func (e *Enforcer) GetRolesForUserInDomain(name string, domain string) []string {
-	amap, ok := e.model.GetKey("g")
+	ast, ok := e.model.GetAstBySecPType("g", "g")
 	if !ok {
 		return []string{}
 	}
-	res, _ := amap["g"].RM.GetRoles(name, domain)
+	res, _ := ast.RM.GetRoles(name, domain)
 	return res
 }
 
@@ -61,11 +61,11 @@ func (e *Enforcer) DeleteRoleForUserInDomain(user string, role string, domain st
 // DeleteRolesForUserInDomain deletes all roles for a user inside a domain.
 // Returns false if the user does not have any roles (aka not affected).
 func (e *Enforcer) DeleteRolesForUserInDomain(user string, domain string) (bool, error) {
-	amap, ok := e.model.GetKey("g")
+	ast, ok := e.model.GetAstBySecPType("g", "g")
 	if !ok {
 		return ok, nil
 	}
-	roles, err := amap["g"].RM.GetRoles(user, domain)
+	roles, err := ast.RM.GetRoles(user, domain)
 	if err != nil {
 		return false, err
 	}
@@ -81,16 +81,14 @@ func (e *Enforcer) DeleteRolesForUserInDomain(user string, domain string) (bool,
 // GetAllUsersByDomain would get all users associated with the domain.
 func (e *Enforcer) GetAllUsersByDomain(domain string) []string {
 	m := make(map[string]struct{})
-	gmap, ok := e.model.GetKey("g")
+	gast, ok := e.model.GetAstBySecPType("g", "g")
 	if !ok {
 		return []string{}
 	}
-	g := gmap["g"]
-	pmap, ok := e.model.GetKey("p")
+	past, ok := e.model.GetAstBySecPType("p", "p")
 	if !ok {
 		return []string{}
 	}
-	p := pmap["p"]
 	users := make([]string, 0)
 	index := e.getDomainIndex("p")
 
@@ -108,23 +106,21 @@ func (e *Enforcer) GetAllUsersByDomain(domain string) []string {
 		return res
 	}
 
-	users = append(users, getUser(2, g.Policy, domain, m)...)
-	users = append(users, getUser(index, p.Policy, domain, m)...)
+	users = append(users, getUser(2, gast.Policy, domain, m)...)
+	users = append(users, getUser(index, past.Policy, domain, m)...)
 	return users
 }
 
 // DeleteAllUsersByDomain would delete all users associated with the domain.
 func (e *Enforcer) DeleteAllUsersByDomain(domain string) (bool, error) {
-	gmap, ok := e.model.GetKey("g")
+	gast, ok := e.model.GetAstBySecPType("g", "g")
 	if !ok {
 		return ok, nil
 	}
-	g := gmap["g"]
-	pmap, ok := e.model.GetKey("p")
+	past, ok := e.model.GetAstBySecPType("p", "p")
 	if !ok {
 		return ok, nil
 	}
-	p := pmap["p"]
 	index := e.getDomainIndex("p")
 
 	getUser := func(index int, policies [][]string, domain string) [][]string {
@@ -140,11 +136,11 @@ func (e *Enforcer) DeleteAllUsersByDomain(domain string) (bool, error) {
 		return res
 	}
 
-	users := getUser(2, g.Policy, domain)
+	users := getUser(2, gast.Policy, domain)
 	if _, err := e.RemoveGroupingPolicies(users); err != nil {
 		return false, err
 	}
-	users = getUser(index, p.Policy, domain)
+	users = getUser(index, past.Policy, domain)
 	if _, err := e.RemovePolicies(users); err != nil {
 		return false, err
 	}
@@ -168,9 +164,9 @@ func (e *Enforcer) DeleteDomains(domains ...string) (bool, error) {
 
 // GetAllDomains would get all domains.
 func (e *Enforcer) GetAllDomains() ([]string, error) {
-	amap, ok := e.model.GetKey("g")
+	gast, ok := e.model.GetAstBySecPType("g", "g")
 	if !ok {
 		return []string{}, nil
 	}
-	return amap["g"].RM.GetAllDomains()
+	return gast.RM.GetAllDomains()
 }

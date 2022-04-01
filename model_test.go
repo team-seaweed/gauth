@@ -569,10 +569,13 @@ func TestABACPolicy(t *testing.T) {
 	m := e.GetModel()
 	m.Range(func(key, value interface{}) bool {
 		fmt.Println(key)
-		ast := value.(model.AssertionMap)
-		for ptype, p := range ast {
-			fmt.Println(ptype, p)
-		}
+		amap := value.(*model.AssertionMap)
+		amap.Range(func(key1, value1 interface{}) bool {
+			ptype := key1.(string)
+			ast := value1.(*model.Assertion)
+			fmt.Println(ptype, ast)
+			return true
+		})
 		return true
 	})
 	sub1 := newTestSubject("alice", 16)

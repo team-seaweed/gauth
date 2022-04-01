@@ -17,23 +17,26 @@ package casbinplus
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/wangdyqxx/casbinplus/model"
 )
 
 func CasbinJsGetPermissionForUser(e IEnforcer, user string) (string, error) {
-	model := e.GetModel()
+	mod := e.GetModel()
 	m := map[string]interface{}{}
-	m["m"] = model.ToText()
+	m["m"] = mod.ToText()
 	policies := make([][]string, 0)
-	amap, ok := model.GetKey("p")
+	amap, ok := mod.GetKey("p")
 	if !ok {
 		return "", nil
 	}
-	for ptype := range amap {
-		policy := model.GetPolicy("p", ptype)
-		for i := range policy {
-			policies = append(policies, append([]string{ptype}, policy[i]...))
+	amap.Range(func(key1, value1 interface{}) bool {
+		ptype := key1.(string)
+		ast := value1.(*model.Assertion)
+		for i := range ast.Policy {
+			policies = append(policies, append([]string{ptype}, ast.Policy[i]...))
 		}
-	}
+		return true
+	})
 	m["p"] = policies
 	result := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(result)

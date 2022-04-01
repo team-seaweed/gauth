@@ -45,13 +45,13 @@ func LoadPolicyLine(line string, m *model.Model) {
 func LoadPolicyArray(rule []string, m *model.Model) {
 	key := rule[0]
 	sec := key[:1]
-	amap, ok := m.GetKey(sec)
+	ast, ok := m.GetAstBySecPType(sec, key)
 	if !ok {
 		fmt.Errorf("mode not found sec:%v", sec)
 		return
 	}
-	amap[key].Policy = append(amap[key].Policy, rule[1:])
-	amap[key].PolicyMap[strings.Join(rule[1:], model.DefaultSep)] = len(amap[key].Policy) - 1
+	ast.Policy = append(ast.Policy, rule[1:])
+	ast.PolicyMap[strings.Join(rule[1:], model.DefaultSep)] = len(ast.Policy) - 1
 }
 
 // Adapter is the interface for Casbin adapters.

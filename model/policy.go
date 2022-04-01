@@ -36,30 +36,30 @@ const DefaultSep = ","
 // BuildIncrementalRoleLinks provides incremental build the role inheritance relations.
 func (model *Model) BuildIncrementalRoleLinks(rmMap map[string]rbac.RoleManager, op PolicyOp, sec string, ptype string, rules [][]string) error {
 	if sec == "g" {
-		amap, ok := model.GetKey(sec)
+		ast, ok := model.GetAstBySecPType(sec, ptype)
 		if !ok {
 			return nil
 		}
-		return amap[ptype].buildIncrementalRoleLinks(rmMap[ptype], op, rules)
+		return ast.buildIncrementalRoleLinks(rmMap[ptype], op, rules)
 	}
 	return nil
 }
 
 // BuildRoleLinks initializes the roles in RBAC.
-func (model *Model) BuildRoleLinks(rmMap map[string]rbac.RoleManager) error {
+func (model *Model) BuildRoleLinks(rmMap map[string]rbac.RoleManager) (err error) {
 	model.PrintPolicy()
 	amap, ok := model.GetKey("g")
 	if !ok {
 		return nil
 	}
-	for ptype, ast := range amap {
-		rm := rmMap[ptype]
-		err := ast.buildRoleLinks(rm)
+	amap.Range(func(key, value interface{}) bool {
+		rm := rmMap[key.(string)]
+		err = value.(*Assertion).buildRoleLinks(rm)
 		if err != nil {
-			return err
+			return false
 		}
-	}
-
+		return true
+	})
 	return nil
 }
 
@@ -74,7 +74,9 @@ func (model *Model) PrintPolicy() {
 	if !ok {
 		return
 	}
-	for key, ast := range amap {
+	amap.Range(func(key1, value1 interface{}) bool {
+		key := key1.(string)
+		ast := value1.(*Assertion)
 		value, found := policy[key]
 		if found {
 			value = append(value, ast.Policy...)
@@ -82,12 +84,16 @@ func (model *Model) PrintPolicy() {
 		} else {
 			policy[key] = ast.Policy
 		}
-	}
-	amap, ok = model.GetKey("g")
+
+		return true
+	})
+	gmap, ok := model.GetKey("g")
 	if !ok {
 		return
 	}
-	for key, ast := range amap {
+	gmap.Range(func(key1, value1 interface{}) bool {
+		key := key1.(string)
+		ast := value1.(*Assertion)
 		value, found := policy[key]
 		if found {
 			value = append(value, ast.Policy...)
@@ -95,7 +101,9 @@ func (model *Model) PrintPolicy() {
 		} else {
 			policy[key] = ast.Policy
 		}
-	}
+
+		return true
+	})
 
 	model.GetLogger().LogPolicy(policy)
 }
@@ -106,37 +114,41 @@ func (model *Model) ClearPolicy() {
 	if !ok {
 		return
 	}
-	for _, ast := range amap {
+	amap.Range(func(key1, value1 interface{}) bool {
+		ast := value1.(*Assertion)
 		ast.Policy = nil
 		ast.PolicyMap = map[string]int{}
-	}
-	amap, ok = model.GetKey("g")
+		return true
+	})
+	gmap, ok := model.GetKey("g")
 	if !ok {
 		return
 	}
-	for _, ast := range amap {
+	gmap.Range(func(key1, value1 interface{}) bool {
+		ast := value1.(*Assertion)
 		ast.Policy = nil
 		ast.PolicyMap = map[string]int{}
-	}
+		return true
+	})
 }
 
 // GetPolicy gets all rules in a policy.
 func (model *Model) GetPolicy(sec string, ptype string) [][]string {
-	amap, ok := model.GetKey(sec)
+	ast, ok := model.GetAstBySecPType(sec, ptype)
 	if !ok {
 		return nil
 	}
-	return amap[ptype].Policy
+	return ast.Policy
 }
 
 // GetFilteredPolicy gets rules based on field filters from a policy.
 func (model *Model) GetFilteredPolicy(sec string, ptype string, fieldIndex int, fieldValues ...string) [][]string {
 	res := [][]string{}
-	amap, ok := model.GetKey(sec)
+	ast, ok := model.GetAstBySecPType(sec, ptype)
 	if !ok {
 		return res
 	}
-	for _, rule := range amap[ptype].Policy {
+	for _, rule := range ast.Policy {
 		matched := true
 		for i, fieldValue := range fieldValues {
 			if fieldValue != "" && rule[fieldIndex+i] != fieldValue {
@@ -155,11 +167,11 @@ func (model *Model) GetFilteredPolicy(sec string, ptype string, fieldIndex int, 
 
 // HasPolicy determines whether a model has the specified policy rule.
 func (model *Model) HasPolicy(sec string, ptype string, rule []string) bool {
-	amap, ok := model.GetKey(sec)
+	ast, ok := model.GetAstBySecPType(sec, ptype)
 	if !ok {
 		return ok
 	}
-	_, ok = amap[ptype].PolicyMap[strings.Join(rule, DefaultSep)]
+	_, ok = ast.PolicyMap[strings.Join(rule, DefaultSep)]
 	return ok
 }
 
@@ -177,14 +189,14 @@ func (model *Model) HasPolicies(sec string, ptype string, rules [][]string) bool
 // AddPolicy adds a policy rule to the model.
 func (model *Model) AddPolicy(sec string, ptype string, rule []string) {
 
-	amap, ok := model.GetKey(sec)
+	ast, ok := model.GetAstBySecPType(sec, ptype)
 	if !ok {
 		return
 	}
 
-	assertion := amap[ptype]
+	assertion := ast
 	assertion.Policy = append(assertion.Policy, rule)
-	assertion.PolicyMap[strings.Join(rule, DefaultSep)] = len(amap[ptype].Policy) - 1
+	assertion.PolicyMap[strings.Join(rule, DefaultSep)] = len(ast.Policy) - 1
 
 	if sec == "p" && assertion.priorityIndex >= 0 {
 		if idxInsert, err := strconv.Atoi(rule[assertion.priorityIndex]); err == nil {
@@ -215,13 +227,13 @@ func (model *Model) AddPolicies(sec string, ptype string, rules [][]string) {
 // AddPoliciesWithAffected adds policy rules to the model, and returns effected rules.
 func (model *Model) AddPoliciesWithAffected(sec string, ptype string, rules [][]string) [][]string {
 	var effected [][]string
-	amap, ok := model.GetKey(sec)
+	ast, ok := model.GetAstBySecPType(sec, ptype)
 	if !ok {
 		return effected
 	}
 	for _, rule := range rules {
 		hashKey := strings.Join(rule, DefaultSep)
-		_, ok = amap[ptype].PolicyMap[hashKey]
+		_, ok = ast.PolicyMap[hashKey]
 		if ok {
 			continue
 		}
@@ -234,19 +246,19 @@ func (model *Model) AddPoliciesWithAffected(sec string, ptype string, rules [][]
 // RemovePolicy removes a policy rule from the model.
 // Deprecated: Using AddPoliciesWithAffected instead.
 func (model *Model) RemovePolicy(sec string, ptype string, rule []string) bool {
-	amap, ok := model.GetKey(sec)
+	ast, ok := model.GetAstBySecPType(sec, ptype)
 	if !ok {
 		return ok
 	}
-	index, ok := amap[ptype].PolicyMap[strings.Join(rule, DefaultSep)]
+	index, ok := ast.PolicyMap[strings.Join(rule, DefaultSep)]
 	if !ok {
 		return false
 	}
 
-	amap[ptype].Policy = append(amap[ptype].Policy[:index], amap[ptype].Policy[index+1:]...)
-	delete(amap[ptype].PolicyMap, strings.Join(rule, DefaultSep))
-	for i := index; i < len(amap[ptype].Policy); i++ {
-		amap[ptype].PolicyMap[strings.Join(amap[ptype].Policy[i], DefaultSep)] = i
+	ast.Policy = append(ast.Policy[:index], ast.Policy[index+1:]...)
+	delete(ast.PolicyMap, strings.Join(rule, DefaultSep))
+	for i := index; i < len(ast.Policy); i++ {
+		ast.PolicyMap[strings.Join(ast.Policy[i], DefaultSep)] = i
 	}
 
 	return true
@@ -255,18 +267,18 @@ func (model *Model) RemovePolicy(sec string, ptype string, rule []string) bool {
 // UpdatePolicy updates a policy rule from the model.
 func (model *Model) UpdatePolicy(sec string, ptype string, oldRule []string, newRule []string) bool {
 	oldPolicy := strings.Join(oldRule, DefaultSep)
-	amap, ok := model.GetKey(sec)
+	ast, ok := model.GetAstBySecPType(sec, ptype)
 	if !ok {
 		return ok
 	}
-	index, ok := amap[ptype].PolicyMap[oldPolicy]
+	index, ok := ast.PolicyMap[oldPolicy]
 	if !ok {
 		return false
 	}
 
-	amap[ptype].Policy[index] = newRule
-	delete(amap[ptype].PolicyMap, oldPolicy)
-	amap[ptype].PolicyMap[strings.Join(newRule, DefaultSep)] = index
+	ast.Policy[index] = newRule
+	delete(ast.PolicyMap, oldPolicy)
+	ast.PolicyMap[strings.Join(newRule, DefaultSep)] = index
 
 	return true
 }
@@ -276,7 +288,7 @@ func (model *Model) UpdatePolicies(sec string, ptype string, oldRules, newRules 
 	rollbackFlag := false
 	// index -> []{oldIndex, newIndex}
 	modifiedRuleIndex := make(map[int][]int)
-	amap, ok := model.GetKey(sec)
+	ast, ok := model.GetAstBySecPType(sec, ptype)
 	if !ok {
 		return ok
 	}
@@ -284,11 +296,11 @@ func (model *Model) UpdatePolicies(sec string, ptype string, oldRules, newRules 
 	defer func() {
 		if rollbackFlag {
 			for index, oldNewIndex := range modifiedRuleIndex {
-				amap[ptype].Policy[index] = oldRules[oldNewIndex[0]]
+				ast.Policy[index] = oldRules[oldNewIndex[0]]
 				oldPolicy := strings.Join(oldRules[oldNewIndex[0]], DefaultSep)
 				newPolicy := strings.Join(newRules[oldNewIndex[1]], DefaultSep)
-				delete(amap[ptype].PolicyMap, newPolicy)
-				amap[ptype].PolicyMap[oldPolicy] = index
+				delete(ast.PolicyMap, newPolicy)
+				ast.PolicyMap[oldPolicy] = index
 			}
 		}
 	}()
@@ -296,15 +308,15 @@ func (model *Model) UpdatePolicies(sec string, ptype string, oldRules, newRules 
 	newIndex := 0
 	for oldIndex, oldRule := range oldRules {
 		oldPolicy := strings.Join(oldRule, DefaultSep)
-		index, ok := amap[ptype].PolicyMap[oldPolicy]
+		index, ok := ast.PolicyMap[oldPolicy]
 		if !ok {
 			rollbackFlag = true
 			return false
 		}
 
-		amap[ptype].Policy[index] = newRules[newIndex]
-		delete(amap[ptype].PolicyMap, oldPolicy)
-		amap[ptype].PolicyMap[strings.Join(newRules[newIndex], DefaultSep)] = index
+		ast.Policy[index] = newRules[newIndex]
+		delete(ast.PolicyMap, oldPolicy)
+		ast.PolicyMap[strings.Join(newRules[newIndex], DefaultSep)] = index
 		modifiedRuleIndex[index] = []int{oldIndex, newIndex}
 		newIndex++
 	}
@@ -321,21 +333,21 @@ func (model *Model) RemovePolicies(sec string, ptype string, rules [][]string) b
 // RemovePoliciesWithEffected removes policy rules from the model, and returns effected rules.
 func (model *Model) RemovePoliciesWithEffected(sec string, ptype string, rules [][]string) [][]string {
 	var effected [][]string
-	amap, ok := model.GetKey(sec)
+	ast, ok := model.GetAstBySecPType(sec, ptype)
 	if !ok {
 		return effected
 	}
 	for _, rule := range rules {
-		index, ok := amap[ptype].PolicyMap[strings.Join(rule, DefaultSep)]
+		index, ok := ast.PolicyMap[strings.Join(rule, DefaultSep)]
 		if !ok {
 			continue
 		}
 
 		effected = append(effected, rule)
-		amap[ptype].Policy = append(amap[ptype].Policy[:index], amap[ptype].Policy[index+1:]...)
-		delete(amap[ptype].PolicyMap, strings.Join(rule, DefaultSep))
-		for i := index; i < len(amap[ptype].Policy); i++ {
-			amap[ptype].PolicyMap[strings.Join(amap[ptype].Policy[i], DefaultSep)] = i
+		ast.Policy = append(ast.Policy[:index], ast.Policy[index+1:]...)
+		delete(ast.PolicyMap, strings.Join(rule, DefaultSep))
+		for i := index; i < len(ast.Policy); i++ {
+			ast.PolicyMap[strings.Join(ast.Policy[i], DefaultSep)] = i
 		}
 	}
 	return effected
@@ -346,13 +358,13 @@ func (model *Model) RemoveFilteredPolicy(sec string, ptype string, fieldIndex in
 	var tmp [][]string
 	var effects [][]string
 	res := false
-	amap, ok := model.GetKey(sec)
+	ast, ok := model.GetAstBySecPType(sec, ptype)
 	if !ok {
 		return ok, effects
 	}
-	amap[ptype].PolicyMap = map[string]int{}
+	ast.PolicyMap = map[string]int{}
 
-	for _, rule := range amap[ptype].Policy {
+	for _, rule := range ast.Policy {
 		matched := true
 		for i, fieldValue := range fieldValues {
 			if fieldValue != "" && rule[fieldIndex+i] != fieldValue {
@@ -365,12 +377,12 @@ func (model *Model) RemoveFilteredPolicy(sec string, ptype string, fieldIndex in
 			effects = append(effects, rule)
 		} else {
 			tmp = append(tmp, rule)
-			amap[ptype].PolicyMap[strings.Join(rule, DefaultSep)] = len(tmp) - 1
+			ast.PolicyMap[strings.Join(rule, DefaultSep)] = len(tmp) - 1
 		}
 	}
 
-	if len(tmp) != len(amap[ptype].Policy) {
-		amap[ptype].Policy = tmp
+	if len(tmp) != len(ast.Policy) {
+		ast.Policy = tmp
 		res = true
 	}
 
@@ -380,11 +392,11 @@ func (model *Model) RemoveFilteredPolicy(sec string, ptype string, fieldIndex in
 // GetValuesForFieldInPolicy gets all values for a field for all rules in a policy, duplicated values are removed.
 func (model *Model) GetValuesForFieldInPolicy(sec string, ptype string, fieldIndex int) []string {
 	values := []string{}
-	amap, ok := model.GetKey(sec)
+	ast, ok := model.GetAstBySecPType(sec, ptype)
 	if !ok {
 		return values
 	}
-	for _, rule := range amap[ptype].Policy {
+	for _, rule := range ast.Policy {
 		values = append(values, rule[fieldIndex])
 	}
 
@@ -400,10 +412,10 @@ func (model *Model) GetValuesForFieldInPolicyAllTypes(sec string, fieldIndex int
 	if !ok {
 		return values
 	}
-	for ptype := range amap {
-		values = append(values, model.GetValuesForFieldInPolicy(sec, ptype, fieldIndex)...)
-	}
-
+	amap.Range(func(key, value interface{}) bool {
+		values = append(values, model.GetValuesForFieldInPolicy(sec, key.(string), fieldIndex)...)
+		return true
+	})
 	util.ArrayRemoveDuplicates(&values)
 
 	return values

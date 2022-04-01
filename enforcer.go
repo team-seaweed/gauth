@@ -396,13 +396,22 @@ func (e *Enforcer) initRmMap() {
 	if !ok {
 		return
 	}
-	for ptype := range amap {
+	amap.Range(func(key, value interface{}) bool {
+		ptype := key.(string)
 		if rm, ok := e.rmMap[ptype]; ok {
 			_ = rm.Clear()
 		} else {
 			e.rmMap[ptype] = defaultrolemanager.NewRoleManager(10)
 		}
-	}
+		return true
+	})
+	//for ptype := range amap {
+	//	if rm, ok := e.rmMap[ptype]; ok {
+	//		_ = rm.Clear()
+	//	} else {
+	//		e.rmMap[ptype] = defaultrolemanager.NewRoleManager(10)
+	//	}
+	//}
 }
 
 // EnableEnforce changes the enforcing state of Casbin, when Casbin is disabled, all access will be allowed by the Enforce() function.
@@ -480,10 +489,13 @@ func (e *Enforcer) enforce(matcher string, explains *[]string, rvals ...interfac
 	functions := e.fm.GetFunctions()
 	gmap, ok := e.model.GetKey("g")
 	if ok {
-		for key, ast := range gmap {
+		gmap.Range(func(key, value interface{}) bool {
+			ptype := key.(string)
+			ast := value.(*model.Assertion)
 			rm := ast.RM
-			functions[key] = util.GenerateGFunction(rm)
-		}
+			functions[ptype] = util.GenerateGFunction(rm)
+			return true
+		})
 	}
 
 	var (
@@ -508,11 +520,11 @@ func (e *Enforcer) enforce(matcher string, explains *[]string, rvals ...interfac
 
 	var expString string
 	if matcher == "" {
-		mmap, ok := e.model.GetKey("m")
+		ast, ok := e.model.GetAstBySecPType("m", mType)
 		if !ok {
 			return ok, nil
 		}
-		expString = mmap[mType].Value
+		expString = ast.Value
 	} else {
 		expString = util.RemoveComments(util.EscapeAssertion(matcher))
 	}
@@ -525,20 +537,20 @@ func (e *Enforcer) enforce(matcher string, explains *[]string, rvals ...interfac
 			return false, err
 		}
 	}
-	rmap, ok := e.model.GetKey("r")
+	rast, ok := e.model.GetAstBySecPType("r", rType)
 	if !ok {
 		return ok, nil
 	}
-	rTokens := make(map[string]int, len(rmap[rType].Tokens))
-	for i, token := range rmap[rType].Tokens {
+	rTokens := make(map[string]int, len(rast.Tokens))
+	for i, token := range rast.Tokens {
 		rTokens[token] = i
 	}
-	pmap, ok := e.model.GetKey("p")
+	past, ok := e.model.GetAstBySecPType("p", pType)
 	if !ok {
 		return ok, nil
 	}
-	pTokens := make(map[string]int, len(pmap[pType].Tokens))
-	for i, token := range pmap[pType].Tokens {
+	pTokens := make(map[string]int, len(past.Tokens))
+	for i, token := range past.Tokens {
 		pTokens[token] = i
 	}
 
@@ -547,16 +559,13 @@ func (e *Enforcer) enforce(matcher string, explains *[]string, rvals ...interfac
 		rVals:   rvals,
 		pTokens: pTokens,
 	}
-	rmap, ok = e.model.GetKey("r")
+	rast, ok = e.model.GetAstBySecPType("r", rType)
 	if !ok {
 		return ok, nil
 	}
-	if len(rmap[rType].Tokens) != len(rvals) {
+	if len(rast.Tokens) != len(rvals) {
 		return false, fmt.Errorf(
-			"invalid request size: expected %d, got %d, rvals: %v",
-			len(rmap[rType].Tokens),
-			len(rvals),
-			rvals)
+			"invalid request size: expected %d, got %d, rvals: %v", len(rast.Tokens), len(rvals), rvals)
 	}
 
 	var policyEffects []effector.Effect
@@ -565,20 +574,21 @@ func (e *Enforcer) enforce(matcher string, explains *[]string, rvals ...interfac
 	var effect effector.Effect
 	var explainIndex int
 
-	pmap, ok = e.model.GetKey("p")
+	past, ok = e.model.GetAstBySecPType("p", pType)
 	if !ok {
 		return ok, nil
 	}
-	if policyLen := len(pmap[pType].Policy); policyLen != 0 && strings.Contains(expString, pType+"_") {
+	policyLen := len(past.Policy)
+	if policyLen != 0 && strings.Contains(expString, pType+"_") {
 		policyEffects = make([]effector.Effect, policyLen)
 		matcherResults = make([]float64, policyLen)
 
-		for policyIndex, pvals := range pmap[pType].Policy {
+		for policyIndex, pvals := range past.Policy {
 			// log.LogPrint("Policy Rule: ", pvals)
-			if len(pmap[pType].Tokens) != len(pvals) {
+			if len(past.Tokens) != len(pvals) {
 				return false, fmt.Errorf(
 					"invalid policy size: expected %d, got %d, pvals: %v",
-					len(pmap[pType].Tokens),
+					len(past.Tokens),
 					len(pvals),
 					pvals)
 			}
@@ -603,7 +613,6 @@ func (e *Enforcer) enforce(matcher string, explains *[]string, rvals ...interfac
 			}
 			result, err := expression.Eval(parameters)
 			//fmt.Println("Result: ", result, err)
-
 			if err != nil {
 				return false, err
 			}
@@ -639,11 +648,11 @@ func (e *Enforcer) enforce(matcher string, explains *[]string, rvals ...interfac
 			//if e.model["e"]["e"].Value == "priority(p_eft) || deny" {
 			//	break
 			//}
-			emap, ok := e.model.GetKey("e")
+			east, ok := e.model.GetAstBySecPType("e", eType)
 			if !ok {
 				return ok, nil
 			}
-			effect, explainIndex, err = e.eft.MergeEffects(emap[eType].Value, policyEffects, matcherResults, policyIndex, policyLen)
+			effect, explainIndex, err = e.eft.MergeEffects(east.Value, policyEffects, matcherResults, policyIndex, policyLen)
 			if err != nil {
 				return false, err
 			}
@@ -652,11 +661,11 @@ func (e *Enforcer) enforce(matcher string, explains *[]string, rvals ...interfac
 			}
 		}
 	} else {
-		pmap, ok = e.model.GetKey("p")
+		past, ok = e.model.GetAstBySecPType("p", pType)
 		if !ok {
 			return
 		}
-		if hasEval && len(pmap[pType].Policy) == 0 {
+		if hasEval && len(past.Policy) == 0 {
 			return false, errors.New("please make sure rule exists in policy when using eval() in matcher")
 		}
 
@@ -676,11 +685,11 @@ func (e *Enforcer) enforce(matcher string, explains *[]string, rvals ...interfac
 		} else {
 			policyEffects[0] = effector.Indeterminate
 		}
-		emap, ok := e.model.GetKey("e")
+		east, ok := e.model.GetAstBySecPType("e", eType)
 		if !ok {
 			return ok, nil
 		}
-		effect, explainIndex, err = e.eft.MergeEffects(emap[eType].Value, policyEffects, matcherResults, 0, 1)
+		effect, explainIndex, err = e.eft.MergeEffects(east.Value, policyEffects, matcherResults, 0, 1)
 		if err != nil {
 			return false, err
 		}
@@ -692,12 +701,12 @@ func (e *Enforcer) enforce(matcher string, explains *[]string, rvals ...interfac
 		if len(*explains) > 0 {
 			logExplains = append(logExplains, *explains)
 		}
-		pmap, ok = e.model.GetKey("p")
+		past, ok = e.model.GetAstBySecPType("p", pType)
 		if !ok {
 			return ok, nil
 		}
-		if explainIndex != -1 && len(pmap[pType].Policy) > explainIndex {
-			*explains = pmap[pType].Policy[explainIndex]
+		if explainIndex != -1 && len(past.Policy) > explainIndex {
+			*explains = past.Policy[explainIndex]
 			logExplains = append(logExplains, *explains)
 		}
 	}

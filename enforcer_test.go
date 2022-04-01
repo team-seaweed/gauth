@@ -508,9 +508,13 @@ func TestEnforceExLog(t *testing.T) {
 
 func testBatchEnforce(t *testing.T, e *Enforcer, requests [][]interface{}, results []bool) {
 	t.Helper()
-	myRes, _ := e.BatchEnforce(requests)
+	myRes, err := e.BatchEnforce(requests)
+	if err != nil {
+		t.Errorf("result err:%v", err)
+		return
+	}
 	if len(myRes) != len(results) {
-		t.Errorf("%v supposed to be %v", myRes, results)
+		t.Errorf("%v supposed to be len %v", myRes, results)
 	}
 	for i, v := range myRes {
 		if v != results[i] {

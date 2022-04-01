@@ -16,26 +16,27 @@ package casbinplus
 
 import (
 	"github.com/wangdyqxx/casbinplus/errors"
+	"github.com/wangdyqxx/casbinplus/model"
 	"github.com/wangdyqxx/casbinplus/util"
 )
 
 // GetRolesForUser gets the roles that a user has.
 func (e *Enforcer) GetRolesForUser(name string, domain ...string) ([]string, error) {
-	amap, ok := e.model.GetKey("g")
+	ast, ok := e.model.GetAstBySecPType("g", "g")
 	if !ok {
 		return nil, errors.ERR_NAME_NOT_FOUND
 	}
-	res, err := amap["g"].RM.GetRoles(name, domain...)
+	res, err := ast.RM.GetRoles(name, domain...)
 	return res, err
 }
 
 // GetUsersForRole gets the users that has a role.
 func (e *Enforcer) GetUsersForRole(name string, domain ...string) ([]string, error) {
-	amap, ok := e.model.GetKey("g")
+	ast, ok := e.model.GetAstBySecPType("g", "g")
 	if !ok {
 		return nil, errors.ERR_NAME_NOT_FOUND
 	}
-	res, err := amap["g"].RM.GetUsers(name, domain...)
+	res, err := ast.RM.GetUsers(name, domain...)
 	return res, err
 }
 
@@ -165,18 +166,22 @@ func (e *Enforcer) GetPermissionsForUser(user string, domain ...string) [][]stri
 	if !ok {
 		return permission
 	}
-	for ptype, assertion := range amap {
-		args := make([]string, len(assertion.Tokens))
+
+	amap.Range(func(key1, value1 interface{}) bool {
+		ptype := key1.(string)
+		ast := value1.(*model.Assertion)
+		args := make([]string, len(ast.Tokens))
 		args[0] = user
 		if len(domain) > 0 {
 			index := e.getDomainIndex(ptype)
-			if index < len(assertion.Tokens) {
+			if index < len(ast.Tokens) {
 				args[index] = domain[0]
 			}
 		}
 		perm := e.GetFilteredPolicy(0, args...)
 		permission = append(permission, perm...)
-	}
+		return true
+	})
 	return permission
 }
 

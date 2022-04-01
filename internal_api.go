@@ -368,14 +368,13 @@ func (e *Enforcer) updateFilteredPolicies(sec string, ptype string, newRules [][
 }
 
 func (e *Enforcer) getDomainIndex(ptype string) int {
-	amap, ok := e.model.GetKey("p")
+	ast, ok := e.model.GetAstBySecPType("p", ptype)
 	if !ok {
 		return 0
 	}
-	p := amap[ptype]
 	pattern := fmt.Sprintf("%s_dom", ptype)
-	index := len(p.Tokens)
-	for i, token := range p.Tokens {
+	index := len(ast.Tokens)
+	for i, token := range ast.Tokens {
 		if token == pattern {
 			index = i
 			break

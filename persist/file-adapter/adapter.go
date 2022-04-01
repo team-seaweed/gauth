@@ -59,32 +59,38 @@ func (a *Adapter) LoadPolicy(model *model.Model) error {
 }
 
 // SavePolicy saves all policy rules to the storage.
-func (a *Adapter) SavePolicy(model *model.Model) error {
+func (a *Adapter) SavePolicy(mod *model.Model) error {
 	if a.filePath == "" {
 		return errors.New("invalid file path, file path cannot be empty")
 	}
 
 	var tmp bytes.Buffer
-	amap, ok := model.GetKey("p")
+	amap, ok := mod.GetKey("p")
 	if ok {
-		for ptype, ast := range amap {
+		amap.Range(func(key1, value1 interface{}) bool {
+			key := key1.(string)
+			ast := value1.(*model.Assertion)
 			for _, rule := range ast.Policy {
-				tmp.WriteString(ptype + ", ")
+				tmp.WriteString(key + ", ")
 				tmp.WriteString(util.ArrayToString(rule))
 				tmp.WriteString("\n")
 			}
-		}
+			return true
+		})
 	}
 
-	amap, ok = model.GetKey("g")
+	amap, ok = mod.GetKey("g")
 	if ok {
-		for ptype, ast := range amap {
+		amap.Range(func(key1, value1 interface{}) bool {
+			key := key1.(string)
+			ast := value1.(*model.Assertion)
 			for _, rule := range ast.Policy {
-				tmp.WriteString(ptype + ", ")
+				tmp.WriteString(key + ", ")
 				tmp.WriteString(util.ArrayToString(rule))
 				tmp.WriteString("\n")
 			}
-		}
+			return true
+		})
 	}
 	return a.savePolicyFile(strings.TrimRight(tmp.String(), "\n"))
 }
