@@ -1,4 +1,4 @@
-package casbin
+package casbinplus
 
 import (
 	"github.com/wangdyqxx/casbinplus/model"

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package casbin
+package casbinplus
 
 // GetUsersForRoleInDomain gets the users that has a role inside a domain. Add by Gordon
 func (e *SyncedEnforcer) GetUsersForRoleInDomain(name string, domain string) []string {

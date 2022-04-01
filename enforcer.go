@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package casbin
+package casbinplus
 
 import (
 	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/Knetic/govaluate"
 	"github.com/wangdyqxx/casbinplus/effector"
 	"github.com/wangdyqxx/casbinplus/log"
 	"github.com/wangdyqxx/casbinplus/model"
@@ -27,7 +28,6 @@ import (
 	"github.com/wangdyqxx/casbinplus/rbac"
 	defaultrolemanager "github.com/wangdyqxx/casbinplus/rbac/default-role-manager"
 	"github.com/wangdyqxx/casbinplus/util"
-	"github.com/Knetic/govaluate"
 )
 
 // Enforcer is the main interface for authorization enforcement and policy management.
@@ -63,12 +63,12 @@ type EnforceContext struct {
 //
 // File:
 //
-// 	e := casbin.NewEnforcer("path/to/basic_model.conf", "path/to/basic_policy.csv")
+// 	e := casbinplus.NewEnforcer("path/to/basic_model.conf", "path/to/basic_policy.csv")
 //
 // MySQL DB:
 //
 // 	a := mysqladapter.NewDBAdapter("mysql", "mysql_username:mysql_password@tcp(127.0.0.1:3306)/")
-// 	e := casbin.NewEnforcer("path/to/basic_model.conf", a)
+// 	e := casbinplus.NewEnforcer("path/to/basic_model.conf", a)
 //
 func NewEnforcer(params ...interface{}) (*Enforcer, error) {
 	e := &Enforcer{logger: &log.DefaultLogger{}}
