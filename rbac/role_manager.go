@@ -33,11 +33,15 @@ type RoleManager interface {
 	// GetRoles gets the roles that a user inherits.
 	// domain is a prefix to the roles (can be used for other purposes).
 	GetRoles(name string, domain ...string) ([]string, error)
+	// HasRole range roles return has.
+	HasRole(role, domain string) bool
 	// GetUsers gets the users that inherits a role.
 	// domain is a prefix to the users (can be used for other purposes).
 	GetUsers(name string, domain ...string) ([]string, error)
 	// GetDomains gets domains that a user has
 	GetDomains(name string) ([]string, error)
+	// HasDomain range domains return has.
+	HasDomain(domain string) bool
 	// GetAllDomains gets all domains
 	GetAllDomains() ([]string, error)
 	// PrintRoles prints all the roles to log.

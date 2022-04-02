@@ -274,7 +274,6 @@ func (rm *RoleManager) GetRoles(name string, domains ...string) ([]string, error
 		fallthrough
 	case 1:
 		patternDomain := rm.getPatternDomain(domains[0])
-
 		var gottenRoles []string
 		for _, domain := range patternDomain {
 			if !rm.hasRole(domain, name) {
@@ -357,6 +356,17 @@ func (rm *RoleManager) GetDomains(name string) ([]string, error) {
 	return domains, nil
 }
 
+func (rm *RoleManager) HasDomain(domain string) bool {
+	rm.allDomains.Range(func(key, value interface{}) bool {
+		domainName := key.(string)
+		if domainName == domain {
+			return true
+		}
+		return true
+	})
+	return false
+}
+
 // GetAllDomains gets all domains
 func (rm *RoleManager) GetAllDomains() ([]string, error) {
 	var domains []string
@@ -377,8 +387,15 @@ func (rm *RoleManager) hasAnyRole(name string, domain string) bool {
 	return false
 }
 
+func (rm *RoleManager) HasRole(role, domain string) bool {
+	return rm.hasRole(domain, role)
+}
+
 func (rm *RoleManager) hasRole(domain, name string) bool {
-	roles, _ := rm.allDomains.LoadOrStore(domain, &Roles{})
+	roles, ok := rm.allDomains.Load(domain)
+	if !ok {
+		return ok
+	}
 	allRoles := roles.(*Roles)
 	if rm.hasPattern {
 		return allRoles.hasRole(domain, name, rm.match)

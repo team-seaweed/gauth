@@ -131,6 +131,7 @@ func TestRole(t *testing.T) {
 
 func TestDomainRole(t *testing.T) {
 	rm := NewRoleManager(3)
+	rm.logger.EnableLog(true)
 	_ = rm.AddLink("u1", "g1", "domain1")
 	_ = rm.AddLink("u2", "g1", "domain1")
 	_ = rm.AddLink("u3", "admin", "domain2")
@@ -144,7 +145,6 @@ func TestDomainRole(t *testing.T) {
 	//      domain1:g1     u4         u3
 	//         /  \
 	//       u1    u2
-
 	testDomainRole(t, rm, "u1", "g1", "domain1", true)
 	testDomainRole(t, rm, "u1", "g1", "domain2", false)
 	testDomainRole(t, rm, "u1", "admin", "domain1", true)
