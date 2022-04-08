@@ -356,15 +356,16 @@ func (rm *RoleManager) GetDomains(name string) ([]string, error) {
 	return domains, nil
 }
 
-func (rm *RoleManager) HasDomain(domain string) bool {
+func (rm *RoleManager) HasDomain(domain string) (status bool) {
 	rm.allDomains.Range(func(key, value interface{}) bool {
 		domainName := key.(string)
 		if domainName == domain {
-			return true
+			status = true
+			return false
 		}
 		return true
 	})
-	return false
+	return
 }
 
 // GetAllDomains gets all domains
