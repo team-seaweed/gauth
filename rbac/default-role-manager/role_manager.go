@@ -357,14 +357,7 @@ func (rm *RoleManager) GetDomains(name string) ([]string, error) {
 }
 
 func (rm *RoleManager) HasDomain(domain string) (status bool) {
-	rm.allDomains.Range(func(key, value interface{}) bool {
-		domainName := key.(string)
-		if domainName == domain {
-			status = true
-			return false
-		}
-		return true
-	})
+	_, status = rm.allDomains.Load(domain)
 	return
 }
 
