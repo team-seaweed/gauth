@@ -381,6 +381,20 @@ func (rm *RoleManager) hasAnyRole(name string, domain string) bool {
 	return false
 }
 
+// GetAllRolesInDomain 获取域下所有角色
+func (rm *RoleManager) GetAllRolesInDomain(domain string) (roles []string) {
+	roleInter, ok := rm.allDomains.Load(domain)
+	if !ok {
+		return roles
+	}
+	allRoles := roleInter.(*Roles)
+	allRoles.Range(func(key, value interface{}) bool {
+		roles = append(roles, key.(string))
+		return true
+	})
+	return roles
+}
+
 func (rm *RoleManager) HasRole(role, domain string) bool {
 	return rm.hasRole(domain, role)
 }
