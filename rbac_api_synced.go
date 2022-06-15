@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package casbinplus
+package gauth
 
 // GetRolesForUser gets the roles that a user has.
 func (e *SyncedEnforcer) GetRolesForUser(name string, domain ...string) ([]string, error) {

@@ -1,4 +1,4 @@
-package casbinplus
+package gauth
 
 import (
 	"fmt"

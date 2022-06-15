@@ -1,4 +1,4 @@
-package casbinplus
+package gauth
 
 import (
 	"github.com/team-seaweed/gauth/model"
