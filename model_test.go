@@ -16,13 +16,13 @@ package casbinplus
 
 import (
 	"fmt"
-	"github.com/wangdyqxx/casbinplus/model"
+	"github.com/team-seaweed/gauth/model"
 	"testing"
 
-	"github.com/wangdyqxx/casbinplus/log"
-	fileadapter "github.com/wangdyqxx/casbinplus/persist/file-adapter"
-	"github.com/wangdyqxx/casbinplus/rbac"
-	"github.com/wangdyqxx/casbinplus/util"
+	"github.com/team-seaweed/gauth/log"
+	fileadapter "github.com/team-seaweed/gauth/persist/file-adapter"
+	"github.com/team-seaweed/gauth/rbac"
+	"github.com/team-seaweed/gauth/util"
 )
 
 func testEnforce(t *testing.T, e *Enforcer, sub interface{}, obj interface{}, act string, res bool) {
@@ -326,6 +326,7 @@ type testCustomRoleManager struct{}
 func NewRoleManager() rbac.RoleManager {
 	return &testCustomRoleManager{}
 }
+
 func (rm *testCustomRoleManager) Clear() error { return nil }
 func (rm *testCustomRoleManager) AddLink(name1 string, name2 string, domain ...string) error {
 	return nil
@@ -355,6 +356,9 @@ func (rm *testCustomRoleManager) GetUsers(name string, domain ...string) ([]stri
 func (rm *testCustomRoleManager) GetDomains(name string) ([]string, error) {
 	return []string{}, nil
 }
+func (rm *testCustomRoleManager) GetAllRolesInDomain(domain string) []string { return nil }
+func (rm *testCustomRoleManager) HasRole(role, domain string) bool           { return false }
+func (rm *testCustomRoleManager) HasDomain(domain string) bool               { return false }
 func (rm *testCustomRoleManager) GetAllDomains() ([]string, error) {
 	return []string{}, nil
 }

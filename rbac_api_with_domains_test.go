@@ -18,7 +18,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/wangdyqxx/casbinplus/util"
+	"github.com/team-seaweed/gauth/util"
 )
 
 // testGetUsersInDomain: Add by Gordon

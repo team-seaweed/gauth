@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/wangdyqxx/casbinplus/util"
+	"github.com/team-seaweed/gauth/util"
 )
 
 func rawEnforce(sub string, obj string, act string) bool {

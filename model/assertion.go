@@ -19,8 +19,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/wangdyqxx/casbinplus/log"
-	"github.com/wangdyqxx/casbinplus/rbac"
+	"github.com/team-seaweed/gauth/log"
+	"github.com/team-seaweed/gauth/rbac"
 )
 
 // Assertion represents an expression in a section of the model.

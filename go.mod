@@ -1,4 +1,4 @@
-module github.com/wangdyqxx/gauth
+module github.com/team-seaweed/gauth
 
 require (
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible

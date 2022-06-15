@@ -19,8 +19,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/wangdyqxx/casbinplus/rbac"
-	"github.com/wangdyqxx/casbinplus/util"
+	"github.com/team-seaweed/gauth/rbac"
+	"github.com/team-seaweed/gauth/util"
 )
 
 type (

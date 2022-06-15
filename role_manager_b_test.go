@@ -2,7 +2,7 @@ package casbinplus
 
 import (
 	"fmt"
-	"github.com/wangdyqxx/casbinplus/util"
+	"github.com/team-seaweed/gauth/util"
 	"testing"
 )
 

@@ -17,7 +17,7 @@ package casbinplus
 import (
 	"testing"
 
-	"github.com/wangdyqxx/casbinplus/model"
+	"github.com/team-seaweed/gauth/model"
 )
 
 type SampleWatcherEx struct {

@@ -17,7 +17,7 @@ package casbinplus
 import (
 	"testing"
 
-	fileadapter "github.com/wangdyqxx/casbinplus/persist/file-adapter"
+	fileadapter "github.com/team-seaweed/gauth/persist/file-adapter"
 )
 
 func TestPathError(t *testing.T) {

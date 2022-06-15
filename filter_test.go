@@ -17,8 +17,8 @@ package casbinplus
 import (
 	"testing"
 
-	fileadapter "github.com/wangdyqxx/casbinplus/persist/file-adapter"
-	"github.com/wangdyqxx/casbinplus/util"
+	fileadapter "github.com/team-seaweed/gauth/persist/file-adapter"
+	"github.com/team-seaweed/gauth/util"
 )
 
 func TestInitFilteredAdapter(t *testing.T) {

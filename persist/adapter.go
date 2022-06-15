@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/wangdyqxx/casbinplus/model"
+	"github.com/team-seaweed/gauth/model"
 )
 
 // LoadPolicyLine loads a text line as a policy rule to model.

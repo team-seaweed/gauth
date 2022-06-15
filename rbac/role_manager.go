@@ -14,7 +14,7 @@
 
 package rbac
 
-import "github.com/wangdyqxx/casbinplus/log"
+import "github.com/team-seaweed/gauth/log"
 
 // RoleManager provides interface to define the operations for managing roles.
 type RoleManager interface {

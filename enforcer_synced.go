@@ -21,7 +21,7 @@ import (
 
 	"github.com/Knetic/govaluate"
 
-	"github.com/wangdyqxx/casbinplus/persist"
+	"github.com/team-seaweed/gauth/persist"
 )
 
 // SyncedEnforcer wraps Enforcer and provides synchronized access

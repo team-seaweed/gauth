@@ -21,9 +21,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/wangdyqxx/casbinplus/model"
-	"github.com/wangdyqxx/casbinplus/persist"
-	"github.com/wangdyqxx/casbinplus/util"
+	"github.com/team-seaweed/gauth/model"
+	"github.com/team-seaweed/gauth/persist"
+	"github.com/team-seaweed/gauth/util"
 )
 
 // Adapter is the file adapter for Casbin.

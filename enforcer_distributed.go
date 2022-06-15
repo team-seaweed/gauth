@@ -1,8 +1,8 @@
 package casbinplus
 
 import (
-	"github.com/wangdyqxx/casbinplus/model"
-	"github.com/wangdyqxx/casbinplus/persist"
+	"github.com/team-seaweed/gauth/model"
+	"github.com/team-seaweed/gauth/persist"
 )
 
 // DistributedEnforcer wraps SyncedEnforcer for dispatcher.

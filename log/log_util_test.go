@@ -17,7 +17,7 @@ package log
 import (
 	"testing"
 
-	"github.com/wangdyqxx/casbinplus/log/mocks"
+	"github.com/team-seaweed/gauth/log/mocks"
 
 	"github.com/golang/mock/gomock"
 )

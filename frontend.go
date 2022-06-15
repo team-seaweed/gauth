@@ -17,7 +17,7 @@ package casbinplus
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/wangdyqxx/casbinplus/model"
+	"github.com/team-seaweed/gauth/model"
 )
 
 func CasbinJsGetPermissionForUser(e IEnforcer, user string) (string, error) {

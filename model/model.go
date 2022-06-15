@@ -24,9 +24,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/wangdyqxx/casbinplus/config"
-	"github.com/wangdyqxx/casbinplus/log"
-	"github.com/wangdyqxx/casbinplus/util"
+	"github.com/team-seaweed/gauth/config"
+	"github.com/team-seaweed/gauth/log"
+	"github.com/team-seaweed/gauth/util"
 )
 
 // Model represents the whole access control model.

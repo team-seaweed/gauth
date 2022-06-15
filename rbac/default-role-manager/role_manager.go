@@ -18,9 +18,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/wangdyqxx/casbinplus/errors"
-	"github.com/wangdyqxx/casbinplus/log"
-	"github.com/wangdyqxx/casbinplus/util"
+	"github.com/team-seaweed/gauth/errors"
+	"github.com/team-seaweed/gauth/log"
+	"github.com/team-seaweed/gauth/util"
 )
 
 const defaultDomain string = ""

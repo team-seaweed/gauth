@@ -17,9 +17,9 @@ package casbinplus
 import (
 	"fmt"
 
-	Err "github.com/wangdyqxx/casbinplus/errors"
-	"github.com/wangdyqxx/casbinplus/model"
-	"github.com/wangdyqxx/casbinplus/persist"
+	Err "github.com/team-seaweed/gauth/errors"
+	"github.com/team-seaweed/gauth/model"
+	"github.com/team-seaweed/gauth/persist"
 )
 
 const (

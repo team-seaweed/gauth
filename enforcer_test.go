@@ -18,9 +18,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/wangdyqxx/casbinplus/model"
-	fileadapter "github.com/wangdyqxx/casbinplus/persist/file-adapter"
-	"github.com/wangdyqxx/casbinplus/util"
+	"github.com/team-seaweed/gauth/model"
+	fileadapter "github.com/team-seaweed/gauth/persist/file-adapter"
+	"github.com/team-seaweed/gauth/util"
 )
 
 func TestKeyMatchModelInMemory(t *testing.T) {

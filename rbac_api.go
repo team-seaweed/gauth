@@ -15,9 +15,9 @@
 package casbinplus
 
 import (
-	"github.com/wangdyqxx/casbinplus/errors"
-	"github.com/wangdyqxx/casbinplus/model"
-	"github.com/wangdyqxx/casbinplus/util"
+	"github.com/team-seaweed/gauth/errors"
+	"github.com/team-seaweed/gauth/model"
+	"github.com/team-seaweed/gauth/util"
 )
 
 // GetRolesForUser gets the roles that a user has.

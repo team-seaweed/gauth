@@ -17,8 +17,8 @@ package defaultrolemanager
 import (
 	"testing"
 
-	"github.com/wangdyqxx/casbinplus/rbac"
-	"github.com/wangdyqxx/casbinplus/util"
+	"github.com/team-seaweed/gauth/rbac"
+	"github.com/team-seaweed/gauth/util"
 )
 
 func testRole(t *testing.T, rm rbac.RoleManager, name1 string, name2 string, res bool) {

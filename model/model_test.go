@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wangdyqxx/casbinplus/config"
+	"github.com/team-seaweed/gauth/config"
 )
 
 var (
