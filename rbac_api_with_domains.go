@@ -144,16 +144,19 @@ func (e *Enforcer) DeleteAllUsersByDomain(domain string) (bool, error) {
 	if _, err := e.RemovePolicies(users); err != nil {
 		return false, err
 	}
+	rm, ok := e.rmMap["g"]
+	if ok {
+		if !rm.DelDomain(domain) {
+			return false, nil
+		}
+	}
 	return true, nil
 }
 
 // DeleteDomains would delete all associated users and roles.
 // It would delete all domains if parameter is not provided.
+// 删除领域数据
 func (e *Enforcer) DeleteDomains(domains ...string) (bool, error) {
-	if len(domains) == 0 {
-		e.ClearPolicy()
-		return true, nil
-	}
 	for _, domain := range domains {
 		if _, err := e.DeleteAllUsersByDomain(domain); err != nil {
 			return false, err

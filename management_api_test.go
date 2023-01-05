@@ -227,8 +227,8 @@ func TestModifyGroupingPolicyAPI(t *testing.T) {
 	_, _ = e.AddGroupingPolicies(groupingRules)
 	testGetRoles(t, e, []string{"data4_admin"}, "ham")
 	testGetRoles(t, e, []string{"data5_admin"}, "jack")
-	_, _ = e.RemoveGroupingPolicies(groupingRules)
-
+	ok, err := e.RemoveGroupingPolicies(groupingRules)
+	t.Log(ok, err)
 	testGetRoles(t, e, []string{}, "alice")
 	namedGroupingPolicy := []string{"alice", "data2_admin"}
 	testGetRoles(t, e, []string{}, "alice")

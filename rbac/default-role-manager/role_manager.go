@@ -361,6 +361,12 @@ func (rm *RoleManager) HasDomain(domain string) (status bool) {
 	return
 }
 
+// DelDomain 删除领域
+func (rm *RoleManager) DelDomain(domain string) (status bool) {
+	_, status = rm.allDomains.LoadAndDelete(domain)
+	return
+}
+
 // GetAllDomains gets all domains
 func (rm *RoleManager) GetAllDomains() ([]string, error) {
 	var domains []string

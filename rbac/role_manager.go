@@ -42,8 +42,10 @@ type RoleManager interface {
 	GetUsers(name string, domain ...string) ([]string, error)
 	// GetDomains gets domains that a user has
 	GetDomains(name string) ([]string, error)
-	// HasDomain range domains return has.
+	// HasDomain 是否存在领域key
 	HasDomain(domain string) bool
+	// DelDomain 删除领域key
+	DelDomain(domain string) bool
 	// GetAllDomains gets all domains
 	GetAllDomains() ([]string, error)
 	// PrintRoles prints all the roles to log.
