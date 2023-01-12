@@ -47,6 +47,11 @@ func (w SampleWatcherEx) UpdateForRemovePolicies(sec string, ptype string, rules
 	return nil
 }
 
+// UpdateForRemoveDom 删除基础领域
+func (w SampleWatcherEx) UpdateForRemoveDom(sec string, dom string) error {
+	return nil
+}
+
 func TestSetWatcherEx(t *testing.T) {
 	e, _ := NewEnforcer("examples/rbac_model.conf", "examples/rbac_policy.csv")
 

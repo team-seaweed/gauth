@@ -37,4 +37,6 @@ type WatcherEx interface {
 	// UpdateForRemovePolicies calls the update callback of other instances to synchronize their policy.
 	// It is called after Enforcer.RemovePolicies()
 	UpdateForRemovePolicies(sec string, ptype string, rules ...[]string) error
+	// UpdateForRemoveDom 删除基础领域
+	UpdateForRemoveDom(sec string, dom string) error
 }
